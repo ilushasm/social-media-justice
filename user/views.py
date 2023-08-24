@@ -5,10 +5,18 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.tokens import RefreshToken, OutstandingToken, BlacklistedToken
+from rest_framework_simplejwt.tokens import (
+    RefreshToken,
+    OutstandingToken,
+    BlacklistedToken,
+)
 
 from user.models import User
-from user.serializers import UserSerializer, UserAuthTokenSerializer
+from user.serializers import (
+    UserSerializer,
+    UserAuthTokenSerializer,
+    ChangePasswordSerializer,
+)
 
 
 class CreateUserView(generics.CreateAPIView):
@@ -54,3 +62,31 @@ class ProfileUserView(generics.RetrieveUpdateAPIView):
 
     def get_object(self) -> User:
         return self.request.user
+
+
+class ChangePasswordView(views.APIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = ChangePasswordSerializer
+
+    def post(self, request) -> Response:
+        serializer = self.serializer_class(data=request.data)
+
+        if serializer.is_valid():
+            user = request.user
+            old_password = serializer.validated_data.get("old_password")
+            new_password = serializer.validated_data.get("new_password")
+
+            if not user.check_password(old_password):
+                return Response(
+                    {"old_password": ["Incorrect password."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            user.set_password(new_password)
+            user.save()
+
+            return Response(
+                {"message": "Password successfully changed."}, status=status.HTTP_200_OK
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

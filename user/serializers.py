@@ -1,7 +1,11 @@
+from abc import ABC
+
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
+
+from user.models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -12,15 +16,20 @@ class UserSerializer(serializers.ModelSerializer):
             "email",
             "password",
             "is_staff",
+            "first_name",
+            "last_name",
+            "image",
+            "bio",
+            "date_of_birth",
         )
         read_only_fields = ("id", "is_staff")
         extra_kwargs = {"password": {"write_only": True, "min_length": 5}}
 
-    def create(self, validated_data):
+    def create(self, validated_data) -> User:
         """Creates user with encrypted password"""
         return get_user_model().objects.create_user(**validated_data)
 
-    def update(self, instance, validated_data):
+    def update(self, instance, validated_data) -> User:
         """Updating user with encrypted password"""
         password = validated_data.pop("password")
         user = super().update(instance, validated_data)
@@ -57,9 +66,6 @@ class UserAuthTokenSerializer(serializers.Serializer):
                 request=self.context.get("request"), email=email, password=password
             )
 
-            # The authenticate call simply returns None for is_active=False
-            # users. (Assuming the default ModelBackend authentication
-            # backend.)
             if not user:
                 msg = _("Unable to log in with provided credentials.")
                 raise serializers.ValidationError(msg, code="authorization")
@@ -69,3 +75,12 @@ class UserAuthTokenSerializer(serializers.Serializer):
 
         attrs["user"] = user
         return attrs
+
+
+class ChangePasswordSerializer(serializers.ModelSerializer):
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+
+    class Meta:
+        model = get_user_model()
+        fields = ("old_password", "new_password")
