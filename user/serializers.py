@@ -1,5 +1,3 @@
-from abc import ABC
-
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from django.contrib.auth import authenticate
@@ -41,6 +39,40 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "image",
+            "bio",
+            "date_of_birth",
+        )
+        read_only_fields = (
+            "id",
+            "email",
+            "password",
+            "is_staff",
+            "first_name",
+            "last_name",
+            "image",
+            "bio",
+            "date_of_birth",
+        )
+
+
+class ChangePasswordSerializer(serializers.ModelSerializer):
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+
+    class Meta:
+        model = get_user_model()
+        fields = ("old_password", "new_password")
+
+
 class UserAuthTokenSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         return super().update(instance=instance, validated_data=validated_data)
@@ -75,12 +107,3 @@ class UserAuthTokenSerializer(serializers.Serializer):
 
         attrs["user"] = user
         return attrs
-
-
-class ChangePasswordSerializer(serializers.ModelSerializer):
-    old_password = serializers.CharField(required=True)
-    new_password = serializers.CharField(required=True)
-
-    class Meta:
-        model = get_user_model()
-        fields = ("old_password", "new_password")

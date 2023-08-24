@@ -1,4 +1,10 @@
+from typing import Type
+
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
+
 from rest_framework import generics, views, status
+from rest_framework.serializers import Serializer
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -16,6 +22,7 @@ from user.serializers import (
     UserSerializer,
     UserAuthTokenSerializer,
     ChangePasswordSerializer,
+    UserProfileSerializer,
 )
 
 
@@ -61,7 +68,15 @@ class ProfileUserView(generics.RetrieveUpdateAPIView):
     permission_classes = (IsAuthenticated,)
 
     def get_object(self) -> User:
+        if "user_id" in self.request.query_params:
+            user_id = self.request.query_params["user_id"]
+            return get_object_or_404(get_user_model().objects.all(), pk=user_id)
         return self.request.user
+
+    def get_serializer_class(self) -> Type[Serializer]:
+        if self.get_object() == self.request.user:
+            return UserSerializer
+        return UserProfileSerializer
 
 
 class ChangePasswordView(views.APIView):
