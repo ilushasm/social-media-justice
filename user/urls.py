@@ -14,6 +14,8 @@ from user.views import (
     FollowUserView,
     UnfollowUserView,
     SearchUserView,
+    ListOfFollowersView,
+    ListOfFollowingView,
 )
 
 urlpatterns = [
@@ -31,8 +33,20 @@ urlpatterns = [
     path("profile/", ProfileUserView.as_view(), name="my-profile"),
     path("profile/<int:user_id>/", ProfileUserView.as_view(), name="user-profile"),
     path("profile/<int:user_id>/follow/", FollowUserView.as_view(), name="follow"),
-    path("profile/<int:user_id>/unfollow/", UnfollowUserView.as_view(), name="unfollow"),
-    path("search/", SearchUserView.as_view(), name="user-search")
+    path(
+        "profile/<int:user_id>/unfollow/", UnfollowUserView.as_view(), name="unfollow"
+    ),
+    path(
+        "profile/<int:user_id>/followers_list/",
+        ListOfFollowersView.as_view(),
+        name="list-of-followers",
+    ),
+    path(
+        "profile/<int:user_id>/following_list/",
+        ListOfFollowingView.as_view(),
+        name="following-list",
+    ),
+    path("search/", SearchUserView.as_view(), name="user-search"),
 ]
 
 app_name = "user"

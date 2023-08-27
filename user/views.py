@@ -114,6 +114,52 @@ class SearchUserView(generics.ListAPIView):
         return queryset
 
 
+def get_followers_or_following(user_id, filter_followers=True) -> list[int]:
+    field_name = "user_id" if filter_followers else "follower_id"
+    related_field_name = "follower" if filter_followers else "user"
+
+    follows = Follow.objects.filter(**{field_name: user_id}).select_related(
+        related_field_name
+    )
+    users_id = [
+        item.follower_id if filter_followers else item.user_id for item in follows
+    ]
+
+    return users_id
+
+
+class ListOfFollowersView(generics.ListAPIView):
+    queryset = get_user_model().objects.all()
+    serializer_class = SearchUserSerializer
+
+    def get_queryset(self) -> QuerySet:
+        queryset = self.queryset
+        user_id = self.kwargs["user_id"]
+        follower_users_id = get_followers_or_following(
+            user_id=user_id, filter_followers=True
+        )
+
+        queryset = queryset.filter(id__in=follower_users_id)
+
+        return queryset
+
+
+class ListOfFollowingView(generics.ListAPIView):
+    queryset = get_user_model().objects.all()
+    serializer_class = SearchUserSerializer
+
+    def get_queryset(self) -> QuerySet:
+        queryset = self.queryset
+        user_id = self.kwargs["user_id"]
+        following_users_id = get_followers_or_following(
+            user_id=user_id, filter_followers=False
+        )
+
+        queryset = queryset.filter(id__in=following_users_id)
+
+        return queryset
+
+
 class ChangePasswordView(views.APIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = ChangePasswordSerializer
