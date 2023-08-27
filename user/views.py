@@ -2,6 +2,7 @@ from typing import Type, Tuple, Optional
 
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from django.db.models import QuerySet, Q
 
 from rest_framework import generics, views, status
 from rest_framework.serializers import Serializer
@@ -23,7 +24,7 @@ from user.serializers import (
     UserAuthTokenSerializer,
     ChangePasswordSerializer,
     UserProfileSerializer,
-    FollowerSerializer,
+    SearchUserSerializer,
 )
 
 
@@ -47,7 +48,7 @@ class LogoutView(views.APIView):
             token.blacklist()
 
             return Response(status=status.HTTP_205_RESET_CONTENT)
-        except TokenError as e:
+        except TokenError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -78,6 +79,39 @@ class ProfileUserView(generics.RetrieveUpdateAPIView):
         if self.get_object() == self.request.user:
             return UserSerializer
         return UserProfileSerializer
+
+
+class SearchUserView(generics.ListAPIView):
+    queryset = get_user_model().objects.all()
+    serializer_class = SearchUserSerializer
+
+    def get_queryset(self) -> QuerySet:
+        queryset = self.queryset.all()
+        filter_params = self.request.query_params
+
+        if filter_params:
+            search_by = filter_params.get("search_by")
+
+            if len(search_by.split()) > 1:
+                search_parts = search_by.split()
+                q_objects = Q()
+
+                for part in search_parts:
+                    q_objects |= (
+                        Q(first_name__icontains=part)
+                        | Q(last_name__icontains=part)
+                        | Q(username__icontains=part)
+                    )
+
+                queryset = queryset.filter(q_objects)
+            else:
+                queryset = queryset.filter(
+                    Q(first_name__icontains=search_by)
+                    | Q(last_name__icontains=search_by)
+                    | Q(username__icontains=search_by)
+                )
+
+        return queryset
 
 
 class ChangePasswordView(views.APIView):

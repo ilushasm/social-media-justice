@@ -3,14 +3,13 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
 
-from user.models import Follow
-
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = (
             "id",
+            "username",
             "email",
             "password",
             "is_staff",
@@ -44,6 +43,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = get_user_model()
         fields = (
             "id",
+            "username",
             "email",
             "first_name",
             "last_name",
@@ -53,6 +53,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         )
         read_only_fields = (
             "id",
+            "username",
             "email",
             "password",
             "is_staff",
@@ -62,6 +63,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "bio",
             "date_of_birth",
         )
+
+
+class SearchUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ("id", "username", "first_name", "last_name", "bio")
 
 
 class ChangePasswordSerializer(serializers.ModelSerializer):
@@ -107,20 +114,3 @@ class UserAuthTokenSerializer(serializers.Serializer):
 
         attrs["user"] = user
         return attrs
-
-
-class FollowerSerializer(serializers.ModelSerializer):
-    user = UserSerializer(many=False)
-    follower = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Follow
-        fields = (
-            "user",
-            "follower",
-        )
-
-    def get_follower(self, obj):
-        context = self.context
-        request = context.get("request")
-        return request.user.following_user.all().values()

@@ -3,6 +3,7 @@ import uuid
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 from django.utils.text import slugify
 from django.utils.translation import gettext as _
@@ -50,7 +51,11 @@ def user_image_file_path(instance, filename) -> str:
 
 
 class User(AbstractUser):
-    username = None
+    username = models.CharField(
+        max_length=30,
+        unique=True,
+        validators=[UnicodeUsernameValidator()],
+    )
     email = models.EmailField(_("email address"), unique=True)
     image = models.ImageField(null=True, upload_to=user_image_file_path)
     bio = models.CharField(max_length=255, null=True)

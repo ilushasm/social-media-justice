@@ -13,6 +13,7 @@ from user.views import (
     ChangePasswordView,
     FollowUserView,
     UnfollowUserView,
+    SearchUserView,
 )
 
 urlpatterns = [
@@ -31,6 +32,7 @@ urlpatterns = [
     path("profile/<int:user_id>/", ProfileUserView.as_view(), name="user-profile"),
     path("profile/<int:user_id>/follow/", FollowUserView.as_view(), name="follow"),
     path("profile/<int:user_id>/unfollow/", UnfollowUserView.as_view(), name="unfollow"),
+    path("search/", SearchUserView.as_view(), name="user-search")
 ]
 
 app_name = "user"
