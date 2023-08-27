@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Tuple, Optional
 
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
@@ -17,12 +17,13 @@ from rest_framework_simplejwt.tokens import (
     BlacklistedToken,
 )
 
-from user.models import User
+from user.models import Follow
 from user.serializers import (
     UserSerializer,
     UserAuthTokenSerializer,
     ChangePasswordSerializer,
     UserProfileSerializer,
+    FollowerSerializer,
 )
 
 
@@ -67,9 +68,9 @@ class ProfileUserView(generics.RetrieveUpdateAPIView):
     authentication_classes = (JWTAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    def get_object(self) -> User:
-        if "user_id" in self.request.query_params:
-            user_id = self.request.query_params["user_id"]
+    def get_object(self) -> get_user_model():
+        if "user_id" in self.kwargs:
+            user_id = self.kwargs["user_id"]
             return get_object_or_404(get_user_model().objects.all(), pk=user_id)
         return self.request.user
 
@@ -105,3 +106,66 @@ class ChangePasswordView(views.APIView):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def get_follow_info(
+    request, user_id: int = None
+) -> Tuple[Optional[get_user_model()], Optional[get_user_model()]]:
+    if user_id is not None and user_id > 0:
+        follower = request.user
+        followed = get_user_model().objects.filter(id=user_id)[0]
+
+        return follower, followed
+
+    return None, None
+
+
+class FollowUserView(views.APIView):
+    permission_classes = (IsAuthenticated,)
+
+    @staticmethod
+    def post(request, user_id: int) -> Response:
+        follower, followed = get_follow_info(request, user_id)
+
+        if followed:
+            if not Follow.objects.filter(follower=follower, user=followed).exists():
+                Follow.objects.create(follower=follower, user=followed)
+                return Response(
+                    {"message": f"You are now following {followed.first_name}"},
+                    status=status.HTTP_201_CREATED,
+                )
+            return Response(
+                {"message": f"You are already following {followed.first_name}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(
+            {"message": "User not found or data is invalid"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+
+class UnfollowUserView(views.APIView):
+    permission_classes = (IsAuthenticated,)
+
+    @staticmethod
+    def delete(request, user_id: int) -> Response:
+        follower, followed = get_follow_info(request, user_id)
+
+        if followed:
+            user_follow = Follow.objects.filter(
+                follower=follower, user=followed
+            ).first()
+            if user_follow:
+                user_follow.delete()
+                return Response(
+                    {"message": f"You have unfollowed {followed.first_name}"},
+                    status=status.HTTP_200_OK,
+                )
+            return Response(
+                {"message": f"You are not following {followed.first_name}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(
+            {"message": "User not found or data is invalid"},
+            status=status.HTTP_404_NOT_FOUND,
+        )

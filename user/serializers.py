@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
 
-from user.models import User
+from user.models import Follow
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -23,11 +23,11 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "is_staff")
         extra_kwargs = {"password": {"write_only": True, "min_length": 5}}
 
-    def create(self, validated_data) -> User:
+    def create(self, validated_data) -> get_user_model():
         """Creates user with encrypted password"""
         return get_user_model().objects.create_user(**validated_data)
 
-    def update(self, instance, validated_data) -> User:
+    def update(self, instance, validated_data) -> get_user_model():
         """Updating user with encrypted password"""
         password = validated_data.pop("password")
         user = super().update(instance, validated_data)
@@ -107,3 +107,20 @@ class UserAuthTokenSerializer(serializers.Serializer):
 
         attrs["user"] = user
         return attrs
+
+
+class FollowerSerializer(serializers.ModelSerializer):
+    user = UserSerializer(many=False)
+    follower = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Follow
+        fields = (
+            "user",
+            "follower",
+        )
+
+    def get_follower(self, obj):
+        context = self.context
+        request = context.get("request")
+        return request.user.following_user.all().values()
