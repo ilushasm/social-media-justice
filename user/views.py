@@ -1,4 +1,4 @@
-from typing import Type, Tuple, Optional
+from typing import Type
 
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
@@ -26,6 +26,7 @@ from user.serializers import (
     UserProfileSerializer,
     SearchUserSerializer,
 )
+from user.utils import get_followers_or_following, get_follow_info
 
 
 class CreateUserView(generics.CreateAPIView):
@@ -114,20 +115,6 @@ class SearchUserView(generics.ListAPIView):
         return queryset
 
 
-def get_followers_or_following(user_id, filter_followers=True) -> list[int]:
-    field_name = "user_id" if filter_followers else "follower_id"
-    related_field_name = "follower" if filter_followers else "user"
-
-    follows = Follow.objects.filter(**{field_name: user_id}).select_related(
-        related_field_name
-    )
-    users_id = [
-        item.follower_id if filter_followers else item.user_id for item in follows
-    ]
-
-    return users_id
-
-
 class ListOfFollowersView(generics.ListAPIView):
     queryset = get_user_model().objects.all()
     serializer_class = SearchUserSerializer
@@ -186,18 +173,6 @@ class ChangePasswordView(views.APIView):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-def get_follow_info(
-    request, user_id: int = None
-) -> Tuple[Optional[get_user_model()], Optional[get_user_model()]]:
-    if user_id is not None and user_id > 0:
-        follower = request.user
-        followed = get_user_model().objects.filter(id=user_id)[0]
-
-        return follower, followed
-
-    return None, None
 
 
 class FollowUserView(views.APIView):
