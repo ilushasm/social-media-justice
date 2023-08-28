@@ -8,7 +8,7 @@ from django.db.models import QuerySet
 
 from post.models import Post, Like
 from post.serializers import PostSerializer, PostUpdateSerializer
-from user.models import Follow
+from post.utils import get_like_object
 
 
 class PostCreateView(generics.CreateAPIView):
@@ -61,9 +61,7 @@ class FeedView(generics.ListAPIView):
         filter_params = self.request.query_params
 
         if not filter_params:
-            followed_users = Follow.objects.filter(follower=user).values_list(
-                "user", flat=True
-            )
+            followed_users = user.following.values_list("user", flat=True)
             queryset = queryset.filter(created_by__in=followed_users)
 
         else:
@@ -82,13 +80,6 @@ class FeedView(generics.ListAPIView):
 class SearchPostsView(generics.ListAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-
-
-def get_like_object(post_id: int, user_id: int) -> Like | None:
-    like = Like.objects.filter(post_id=post_id).filter(created_by_id=user_id)
-    if like.exists():
-        return like
-    return None
 
 
 class LikePostView(views.APIView):
@@ -110,3 +101,17 @@ class LikePostView(views.APIView):
             {"message": "You have unliked this post"},
             status=status.HTTP_404_NOT_FOUND,
         )
+
+
+class LikedPostsView(generics.ListAPIView):
+    queryset = Post.objects.all()
+    permission_classes = (IsAuthenticated,)
+    serializer_class = PostSerializer
+
+    def get_queryset(self) -> QuerySet:
+        queryset = self.queryset
+        user = self.request.user
+        liked_posts = user.likes.values_list("post", flat=True)
+
+        queryset = queryset.filter(id__in=liked_posts)
+        return queryset

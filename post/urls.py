@@ -1,6 +1,12 @@
 from django.urls import path
 
-from post.views import PostCreateView, FeedView, PostRetrieveView, LikePostView
+from post.views import (
+    PostCreateView,
+    FeedView,
+    PostRetrieveView,
+    LikePostView,
+    LikedPostsView,
+)
 
 urlpatterns = [
     path("new-post/", PostCreateView.as_view(), name="new-post"),
@@ -15,6 +21,7 @@ urlpatterns = [
         name="like-unlike-post",
     ),
     path("feed/", FeedView.as_view(), name="feed"),
+    path("liked-posts/", LikedPostsView.as_view(), name="liked-posts"),
 ]
 
 app_name = "post"
