@@ -6,6 +6,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import QuerySet
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+
 from post.models import Post, Like, Comment
 from post.serializers import (
     PostSerializer,
@@ -25,6 +28,10 @@ class PostCreateView(generics.CreateAPIView):
 
     def perform_create(self, serializer) -> None:
         serializer.save(created_by=self.request.user)
+
+    @extend_schema(request=PostSerializer, responses={200: PostSerializer})
+    def create(self, request, *args, **kwargs):
+        return super().create(self, request, *args, **kwargs)
 
 
 class PostRetrieveView(generics.RetrieveUpdateDestroyAPIView):
@@ -48,6 +55,16 @@ class PostRetrieveView(generics.RetrieveUpdateDestroyAPIView):
         if post.created_by == user:
             return PostUpdateSerializer
         return PostSerializer
+
+    @extend_schema(request=PostUpdateSerializer)
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(self, request, *args, **kwargs)
+
+    @extend_schema(
+        responses={204: None}, description="Deletes the selected Post."
+    )
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs)
 
 
 class FeedView(generics.ListAPIView):
@@ -82,12 +99,32 @@ class FeedView(generics.ListAPIView):
 
         return queryset
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "content",
+                type=OpenApiTypes.STR,
+                description="Filter by Post content(ex. ?content=#python)",
+            ),
+            OpenApiParameter(
+                "created_at",
+                type=OpenApiTypes.DATE,
+                description=(
+                    "Filter by creation date (ex. ?arrival=2023-08-28)"
+                ),
+            ),
+        ]
+    )
+    def get(self, request, *args, **kwargs) -> Response:
+        return super().get(request, *args, **kwargs)
+
 
 class LikePostView(views.APIView):
     """
     Created Like instance that represents like on a post by currently logged-in user.
     If instance exist, deletes it — unliking the post.
     """
+
     permission_classes = (IsAuthenticated,)
 
     @staticmethod
