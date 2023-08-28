@@ -10,7 +10,7 @@ class Post(models.Model):
     )
 
     def __str__(self) -> str:
-        return f"{self.created_by.email} {self.created_at}"
+        return f"{self.created_by} {self.created_at}"
 
 
 class Comment(models.Model):

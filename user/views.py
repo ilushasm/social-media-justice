@@ -74,7 +74,6 @@ class ProfileUserView(generics.RetrieveUpdateAPIView):
 
     serializer_class = UserSerializer
     authentication_classes = (JWTAuthentication,)
-    permission_classes = (IsAuthenticated,)
 
     def get_object(self) -> get_user_model():
         if "user_id" in self.kwargs:

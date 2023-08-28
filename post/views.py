@@ -105,6 +105,8 @@ class LikePostView(views.APIView):
 
 
 class LikedPostsView(generics.ListAPIView):
+    """Returns list of all posts liked by current user"""
+
     queryset = Post.objects.all()
     permission_classes = (IsAuthenticated,)
     serializer_class = PostListSerializer
@@ -119,6 +121,8 @@ class LikedPostsView(generics.ListAPIView):
 
 
 class CommentCreateView(generics.CreateAPIView):
+    """Provides functionality to Create Comment instance"""
+
     serializer_class = CommentSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -128,6 +132,8 @@ class CommentCreateView(generics.CreateAPIView):
 
 
 class CommentUpdateView(generics.RetrieveUpdateDestroyAPIView):
+    """Provides functionality to Update or Delete Comment instance"""
+
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = (IsAuthenticated,)
