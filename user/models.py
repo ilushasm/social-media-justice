@@ -24,13 +24,17 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_user(self, email, password=None, **extra_fields) -> get_user_model:
+    def create_user(
+        self, email, password=None, **extra_fields
+    ) -> get_user_model:
         """Create and save a regular User with the given email and password."""
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
         return self._create_user(email, password, **extra_fields)
 
-    def create_superuser(self, email, password, **extra_fields) -> get_user_model:
+    def create_superuser(
+        self, email, password, **extra_fields
+    ) -> get_user_model:
         """Create and save a SuperUser with the given email and password."""
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
