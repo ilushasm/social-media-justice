@@ -52,9 +52,7 @@ def user_image_file_path(instance, filename) -> str:
 
 class User(AbstractUser):
     username = models.CharField(
-        max_length=30,
-        unique=True,
-        validators=[UnicodeUsernameValidator()],
+        max_length=30, unique=True, validators=[UnicodeUsernameValidator()]
     )
     email = models.EmailField(_("email address"), unique=True)
     image = models.ImageField(null=True, upload_to=user_image_file_path)
@@ -68,6 +66,8 @@ class User(AbstractUser):
 
 
 class Follow(models.Model):
+    """Used to represent user followed by another user"""
+
     follower = models.ForeignKey(
         get_user_model(), on_delete=models.CASCADE, related_name="following"
     )

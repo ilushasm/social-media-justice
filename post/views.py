@@ -1,9 +1,13 @@
-from rest_framework import generics
+from typing import Type
+
+from rest_framework import generics, views, status
+from rest_framework.serializers import Serializer
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from django.db.models import QuerySet
 
-from post.models import Post
-from post.serializers import PostSerializer
+from post.models import Post, Like
+from post.serializers import PostSerializer, PostUpdateSerializer
 from user.models import Follow
 
 
@@ -15,6 +19,29 @@ class PostCreateView(generics.CreateAPIView):
 
     def perform_create(self, serializer) -> None:
         serializer.save(created_by=self.request.user)
+
+
+class PostRetrieveView(generics.RetrieveUpdateAPIView):
+    """
+    Returns Post Detail page. If post was created by logged-in user uses PostUpdateSerializer,
+    that allows updating
+    """
+
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+
+    def get_object(self) -> Post:
+        queryset = self.queryset
+        post_id = self.kwargs["post_id"]
+        post = queryset.get(id=post_id)
+        return post
+
+    def get_serializer_class(self) -> Type[Serializer]:
+        post = self.get_object()
+        user = self.request.user
+        if post.created_by == user:
+            return PostUpdateSerializer
+        return PostSerializer
 
 
 class FeedView(generics.ListAPIView):
@@ -55,3 +82,31 @@ class FeedView(generics.ListAPIView):
 class SearchPostsView(generics.ListAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
+
+
+def get_like_object(post_id: int, user_id: int) -> Like | None:
+    like = Like.objects.filter(post_id=post_id).filter(created_by_id=user_id)
+    if like.exists():
+        return like
+    return None
+
+
+class LikePostView(views.APIView):
+    permission_classes = (IsAuthenticated,)
+
+    @staticmethod
+    def post(request, post_id: int) -> Response:
+        user = request.user
+        like = get_like_object(post_id=post_id, user_id=user.id)
+
+        if like is None:
+            Like.objects.create(post_id=post_id, created_by=user)
+            return Response(
+                {"message": "You have liked this post"},
+                status=status.HTTP_200_OK,
+            )
+        like.delete()
+        return Response(
+            {"message": "You have unliked this post"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
