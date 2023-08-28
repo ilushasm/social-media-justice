@@ -19,6 +19,9 @@ class Comment(models.Model):
     created_by = models.ForeignKey(
         get_user_model(), related_name="comments", on_delete=models.CASCADE
     )
+    post = models.ForeignKey(
+        Post, related_name="comments", on_delete=models.CASCADE
+    )
 
 
 class Like(models.Model):

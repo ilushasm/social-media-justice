@@ -6,8 +6,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import QuerySet
 
-from post.models import Post, Like
-from post.serializers import PostSerializer, PostUpdateSerializer
+from post.models import Post, Like, Comment
+from post.serializers import (
+    PostSerializer,
+    PostUpdateSerializer,
+    PostListSerializer,
+    CommentSerializer,
+    CommentListSerializer,
+)
 from post.utils import get_like_object
 
 
@@ -21,7 +27,7 @@ class PostCreateView(generics.CreateAPIView):
         serializer.save(created_by=self.request.user)
 
 
-class PostRetrieveView(generics.RetrieveUpdateAPIView):
+class PostRetrieveView(generics.RetrieveUpdateDestroyAPIView):
     """
     Returns Post Detail page. If post was created by logged-in user uses PostUpdateSerializer,
     that allows updating
@@ -52,7 +58,7 @@ class FeedView(generics.ListAPIView):
     """
 
     queryset = Post.objects.all()
-    serializer_class = PostSerializer
+    serializer_class = PostListSerializer
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self) -> QuerySet:
@@ -75,11 +81,6 @@ class FeedView(generics.ListAPIView):
                 queryset = queryset.filter(created_at__date=created_at)
 
         return queryset
-
-
-class SearchPostsView(generics.ListAPIView):
-    queryset = Post.objects.all()
-    serializer_class = PostSerializer
 
 
 class LikePostView(views.APIView):
@@ -106,7 +107,7 @@ class LikePostView(views.APIView):
 class LikedPostsView(generics.ListAPIView):
     queryset = Post.objects.all()
     permission_classes = (IsAuthenticated,)
-    serializer_class = PostSerializer
+    serializer_class = PostListSerializer
 
     def get_queryset(self) -> QuerySet:
         queryset = self.queryset
@@ -115,3 +116,29 @@ class LikedPostsView(generics.ListAPIView):
 
         queryset = queryset.filter(id__in=liked_posts)
         return queryset
+
+
+class CommentCreateView(generics.CreateAPIView):
+    serializer_class = CommentSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def perform_create(self, serializer) -> None:
+        post_id = self.kwargs["post_id"]
+        serializer.save(created_by=self.request.user, post_id=post_id)
+
+
+class CommentUpdateView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self) -> Comment:
+        comment_id = self.kwargs["comment_id"]
+        return Comment.objects.get(id=comment_id)
+
+    def get_serializer_class(self) -> Type[Serializer]:
+        user = self.request.user
+        comment = self.get_object()
+        if comment.created_by == user:
+            return CommentSerializer
+        return CommentListSerializer

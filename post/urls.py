@@ -6,6 +6,8 @@ from post.views import (
     PostRetrieveView,
     LikePostView,
     LikedPostsView,
+    CommentCreateView,
+    CommentUpdateView,
 )
 
 urlpatterns = [
@@ -19,6 +21,16 @@ urlpatterns = [
         "post-details/<int:post_id>/like/",
         LikePostView.as_view(),
         name="like-unlike-post",
+    ),
+    path(
+        "post-details/<int:post_id>/comment/",
+        CommentCreateView.as_view(),
+        name="comment-create",
+    ),
+    path(
+        "post-details/<int:post_id>/comment/<int:comment_id>/",
+        CommentUpdateView.as_view(),
+        name="comment-update",
     ),
     path("feed/", FeedView.as_view(), name="feed"),
     path("liked-posts/", LikedPostsView.as_view(), name="liked-posts"),
