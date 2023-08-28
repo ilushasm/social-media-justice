@@ -26,7 +26,7 @@ from user.serializers import (
     UserProfileSerializer,
     SearchUserSerializer,
 )
-from user.utils import get_followers_or_following, get_follow_info
+from user.utils import get_follow_object
 
 
 class CreateUserView(generics.CreateAPIView):
@@ -133,12 +133,10 @@ class ListOfFollowersView(generics.ListAPIView):
 
     def get_queryset(self) -> QuerySet:
         queryset = self.queryset
-        user_id = self.kwargs["user_id"]
-        follower_users_id = get_followers_or_following(
-            user_id=user_id, filter_followers=True
-        )
+        user = self.request.user
+        followers_users_id = user.followers.values_list("follower", flat=True)
 
-        queryset = queryset.filter(id__in=follower_users_id)
+        queryset = queryset.filter(id__in=followers_users_id)
 
         return queryset
 
@@ -151,10 +149,8 @@ class ListOfFollowingView(generics.ListAPIView):
 
     def get_queryset(self) -> QuerySet:
         queryset = self.queryset
-        user_id = self.kwargs["user_id"]
-        following_users_id = get_followers_or_following(
-            user_id=user_id, filter_followers=False
-        )
+        user = self.request.user
+        following_users_id = user.following.values_list("user", flat=True)
 
         queryset = queryset.filter(id__in=following_users_id)
 
@@ -193,65 +189,24 @@ class ChangePasswordView(views.APIView):
 
 
 class FollowUserView(views.APIView):
-    """This view created new Follow instance that will represent one user following another"""
+    """
+    This view creates new Follow instance that will represent one user following another
+    if current user is not already following user with user.id==user_id.
+    Otherwise, it will delete Follow instance, hence unfollowing the user with user.id==user_id
+    """
 
     permission_classes = (IsAuthenticated,)
 
     @staticmethod
     def post(request, user_id: int) -> Response:
-        follower, followed = get_follow_info(request, user_id)
+        follower = request.user
+        follow_obj = get_follow_object(follower_id=follower, user_id=user_id)
+        user_to_follow = get_user_model().objects.get(id=user_id)
 
-        if followed:
-            if not Follow.objects.filter(
-                follower=follower, user=followed
-            ).exists():
-                Follow.objects.create(follower=follower, user=followed)
-                return Response(
-                    {
-                        "message": (
-                            f"You are now following {followed.first_name}"
-                        )
-                    },
-                    status=status.HTTP_201_CREATED,
-                )
+        if follow_obj is None:
+            Follow.objects.create(follower=follower, user_id=user_id)
             return Response(
-                {
-                    "message": (
-                        f"You are already following {followed.first_name}"
-                    )
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+                {"message": f"You are now following {user_to_follow}"}
             )
-        return Response(
-            {"message": "User not found or data is invalid"},
-            status=status.HTTP_404_NOT_FOUND,
-        )
-
-
-class UnfollowUserView(views.APIView):
-    """This view deletes Follow instance that represents one user following another"""
-
-    permission_classes = (IsAuthenticated,)
-
-    @staticmethod
-    def delete(request, user_id: int) -> Response:
-        follower, followed = get_follow_info(request, user_id)
-
-        if followed:
-            user_follow = Follow.objects.filter(
-                follower=follower, user=followed
-            ).first()
-            if user_follow:
-                user_follow.delete()
-                return Response(
-                    {"message": f"You have unfollowed {followed.first_name}"},
-                    status=status.HTTP_200_OK,
-                )
-            return Response(
-                {"message": f"You are not following {followed.first_name}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        return Response(
-            {"message": "User not found or data is invalid"},
-            status=status.HTTP_404_NOT_FOUND,
-        )
+        follow_obj.delete()
+        return Response({"message": f"You have unfollowed {user_to_follow}"})

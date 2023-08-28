@@ -12,7 +12,6 @@ from user.views import (
     LogoutAllView,
     ChangePasswordView,
     FollowUserView,
-    UnfollowUserView,
     SearchUserView,
     ListOfFollowersView,
     ListOfFollowingView,
@@ -38,20 +37,15 @@ urlpatterns = [
     path(
         "profile/<int:user_id>/follow/",
         FollowUserView.as_view(),
-        name="follow",
+        name="follow-unfollow",
     ),
     path(
-        "profile/<int:user_id>/unfollow/",
-        UnfollowUserView.as_view(),
-        name="unfollow",
-    ),
-    path(
-        "profile/<int:user_id>/followers_list/",
+        "profile/<int:user_id>/followers/",
         ListOfFollowersView.as_view(),
         name="list-of-followers",
     ),
     path(
-        "profile/<int:user_id>/following_list/",
+        "profile/<int:user_id>/following/",
         ListOfFollowingView.as_view(),
         name="following-list",
     ),
