@@ -63,7 +63,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "date_of_birth",
             "posts",
         )
-        read_only_fields = ("__all__",)
+        read_only_fields = (
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "image",
+            "bio",
+            "date_of_birth",
+            "posts",
+        )
 
 
 class SearchUserSerializer(serializers.ModelSerializer):
