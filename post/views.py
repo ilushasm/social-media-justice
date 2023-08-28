@@ -84,6 +84,10 @@ class FeedView(generics.ListAPIView):
 
 
 class LikePostView(views.APIView):
+    """
+    Created Like instance that represents like on a post by currently logged-in user.
+    If instance exist, deletes it — unliking the post.
+    """
     permission_classes = (IsAuthenticated,)
 
     @staticmethod
