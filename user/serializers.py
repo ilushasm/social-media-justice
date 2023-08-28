@@ -3,8 +3,14 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
 
+from post.serializers import PostSerializer
+
 
 class UserSerializer(serializers.ModelSerializer):
+    """Serializer user for creating, updating and retrieving logged-in user"""
+
+    posts = PostSerializer(many=True, read_only=True)
+
     class Meta:
         model = get_user_model()
         fields = (
@@ -18,8 +24,9 @@ class UserSerializer(serializers.ModelSerializer):
             "image",
             "bio",
             "date_of_birth",
+            "posts",
         )
-        read_only_fields = ("id", "is_staff")
+        read_only_fields = ("id", "is_staff", "posts")
         extra_kwargs = {"password": {"write_only": True, "min_length": 5}}
 
     def create(self, validated_data) -> get_user_model():
@@ -39,6 +46,10 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializer used for retrieving user with user.id==user_id and all posts made by that user"""
+
+    posts = PostSerializer(many=True, read_only=True)
+
     class Meta:
         model = get_user_model()
         fields = (
@@ -50,28 +61,22 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "image",
             "bio",
             "date_of_birth",
+            "posts",
         )
-        read_only_fields = (
-            "id",
-            "username",
-            "email",
-            "password",
-            "is_staff",
-            "first_name",
-            "last_name",
-            "image",
-            "bio",
-            "date_of_birth",
-        )
+        read_only_fields = ("__all__",)
 
 
 class SearchUserSerializer(serializers.ModelSerializer):
+    """Returns short fewer field for user search"""
+
     class Meta:
         model = get_user_model()
         fields = ("id", "username", "first_name", "last_name", "bio")
 
 
 class ChangePasswordSerializer(serializers.ModelSerializer):
+    """Used for password change"""
+
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
 
@@ -102,7 +107,9 @@ class UserAuthTokenSerializer(serializers.Serializer):
 
         if email and password:
             user = authenticate(
-                request=self.context.get("request"), email=email, password=password
+                request=self.context.get("request"),
+                email=email,
+                password=password,
             )
 
             if not user:

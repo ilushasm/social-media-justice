@@ -39,6 +39,8 @@ class CreateTokenView(ObtainAuthToken):
 
 
 class LogoutView(views.APIView):
+    """Invalidates current token of logged-in user"""
+
     permission_classes = (IsAuthenticated,)
 
     @staticmethod
@@ -54,6 +56,8 @@ class LogoutView(views.APIView):
 
 
 class LogoutAllView(views.APIView):
+    """Invalidates ALL tokens of logged-in user"""
+
     permission_classes = (IsAuthenticated,)
 
     @staticmethod
@@ -66,6 +70,8 @@ class LogoutAllView(views.APIView):
 
 
 class ProfileUserView(generics.RetrieveUpdateAPIView):
+    """Returns a profile of user with user.id==user_id and all of theirs posts"""
+
     serializer_class = UserSerializer
     authentication_classes = (JWTAuthentication,)
     permission_classes = (IsAuthenticated,)
@@ -73,7 +79,9 @@ class ProfileUserView(generics.RetrieveUpdateAPIView):
     def get_object(self) -> get_user_model():
         if "user_id" in self.kwargs:
             user_id = self.kwargs["user_id"]
-            return get_object_or_404(get_user_model().objects.all(), pk=user_id)
+            return get_object_or_404(
+                get_user_model().objects.all(), pk=user_id
+            )
         return self.request.user
 
     def get_serializer_class(self) -> Type[Serializer]:
@@ -83,6 +91,8 @@ class ProfileUserView(generics.RetrieveUpdateAPIView):
 
 
 class SearchUserView(generics.ListAPIView):
+    """Allows searching users by username and/or first and last name"""
+
     queryset = get_user_model().objects.all()
     serializer_class = SearchUserSerializer
 
@@ -116,6 +126,8 @@ class SearchUserView(generics.ListAPIView):
 
 
 class ListOfFollowersView(generics.ListAPIView):
+    """Returns list of followers of user with user.id==user_id"""
+
     queryset = get_user_model().objects.all()
     serializer_class = SearchUserSerializer
 
@@ -132,6 +144,8 @@ class ListOfFollowersView(generics.ListAPIView):
 
 
 class ListOfFollowingView(generics.ListAPIView):
+    """Returns list of users followed by user with user.id==user_id"""
+
     queryset = get_user_model().objects.all()
     serializer_class = SearchUserSerializer
 
@@ -148,6 +162,8 @@ class ListOfFollowingView(generics.ListAPIView):
 
 
 class ChangePasswordView(views.APIView):
+    """Password change"""
+
     permission_classes = (IsAuthenticated,)
     serializer_class = ChangePasswordSerializer
 
@@ -169,13 +185,16 @@ class ChangePasswordView(views.APIView):
             user.save()
 
             return Response(
-                {"message": "Password successfully changed."}, status=status.HTTP_200_OK
+                {"message": "Password successfully changed."},
+                status=status.HTTP_200_OK,
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class FollowUserView(views.APIView):
+    """This view created new Follow instance that will represent one user following another"""
+
     permission_classes = (IsAuthenticated,)
 
     @staticmethod
@@ -183,14 +202,24 @@ class FollowUserView(views.APIView):
         follower, followed = get_follow_info(request, user_id)
 
         if followed:
-            if not Follow.objects.filter(follower=follower, user=followed).exists():
+            if not Follow.objects.filter(
+                follower=follower, user=followed
+            ).exists():
                 Follow.objects.create(follower=follower, user=followed)
                 return Response(
-                    {"message": f"You are now following {followed.first_name}"},
+                    {
+                        "message": (
+                            f"You are now following {followed.first_name}"
+                        )
+                    },
                     status=status.HTTP_201_CREATED,
                 )
             return Response(
-                {"message": f"You are already following {followed.first_name}"},
+                {
+                    "message": (
+                        f"You are already following {followed.first_name}"
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return Response(
@@ -200,6 +229,8 @@ class FollowUserView(views.APIView):
 
 
 class UnfollowUserView(views.APIView):
+    """This view deletes Follow instance that represents one user following another"""
+
     permission_classes = (IsAuthenticated,)
 
     @staticmethod
